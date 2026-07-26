@@ -37,8 +37,9 @@ export interface PostDetail extends Post {
   seriesId: string | null;
   screenshots: string[];
   players: { label: string | null; url: string | null }[];
-  /** Download links grouped by quality/provider (from upstream). */
   downloads: PostDetailDownload[];
+  /** Per-episode downloads (multi-episode content), arranged in order. */
+  episodes: DownloadEpisode[];
 }
 
 export interface SeriesInfo {
