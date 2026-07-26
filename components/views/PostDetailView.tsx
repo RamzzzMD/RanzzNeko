@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
+  Building2,
   Calendar,
   Clapperboard,
   Clock,
@@ -137,6 +138,11 @@ export function PostDetailView({ id }: { id: string }) {
               icon={Clapperboard}
               label="Type"
               value={post.type ? humanize(post.type) : "—"}
+            />
+            <MetaItem
+              icon={Building2}
+              label="Producer"
+              value={orDash(post.producer)}
             />
           </dl>
 
