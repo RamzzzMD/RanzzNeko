@@ -46,6 +46,15 @@ function nestedPostArray(entry: any): any[] | null {
   return null;
 }
 
+function findItemsArray(payload: any): any[] {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (typeof payload === "object") {
+    return pickArray(payload, NESTED_LIST_KEYS);
+  }
+  return [];
+}
+
 function stripBlockedGenres(genres: string[]): string[] {
   return genres.filter((g) => !BLOCKED_GENRES.has(String(g).toLowerCase()));
 }
