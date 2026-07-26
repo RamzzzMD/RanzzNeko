@@ -30,6 +30,19 @@ export interface DownloadEpisode {
   downloads: PostDetailDownload[];
 }
 
+export interface RelatedEpisode {
+  id: string;
+  title: string;
+  thumbnail: string | null;
+  released: string | null;
+  downloads: PostDetailDownload[];
+  players: { label: string | null; url: string | null }[];
+}
+
+export interface RelatedResponse {
+  episodes: RelatedEpisode[];
+}
+
 export interface PostDetail extends Post {
   description: string | null;
   released: string | null;
