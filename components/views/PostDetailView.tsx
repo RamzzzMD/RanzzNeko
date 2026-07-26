@@ -32,6 +32,17 @@ export function PostDetailView({ id }: { id: string }) {
   });
 
   const post = query.data;
+
+  // PERBAIKAN: useQuery tidak boleh ada di dalam useEffect. Harus di level komponen.
+  const related = useQuery({
+    // @ts-ignore
+    queryKey: queryKeys.related ? queryKeys.related(post?.title ?? "", id) : ["related", id],
+    // @ts-ignore
+    queryFn: () => api.related(post!.title, id),
+    enabled: Boolean(post?.title && post.title !== "Untitled"),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const addRecent = useAppStore((s) => s.addRecent);
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const isFavorite = useAppStore((s) =>
@@ -252,7 +263,6 @@ export function PostDetailView({ id }: { id: string }) {
       )}
 
       {/* Download — one block per episode, each grouped by quality. */}
-      {/* (Menggunakan ts-ignore opsional jika tipe data tidak memiliki properti episodes) */}
       {/* @ts-ignore */}
       {post.episodes && post.episodes.length > 0 && (
         <section className="mt-10">
@@ -308,6 +318,92 @@ export function PostDetailView({ id }: { id: string }) {
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {/* Episode list matched by title — each with its own download links. */}
+      {/* @ts-ignore */}
+      {(related.isLoading || (related.data?.episodes?.length ?? 0) > 0) && (
+        <section className="mt-10">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+            <Layers className="h-5 w-5 text-primary" />
+            Episode &amp; Download
+            {related.data && (
+              <span className="text-sm font-normal text-muted-foreground">
+                {/* @ts-ignore */}
+                ({related.data.episodes.length}{" "}
+                {/* @ts-ignore */}
+                {related.data.episodes.length === 1 ? "episode" : "episodes"})
+              </span>
+            )}
+          </h2>
+
+          {related.isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-xl" />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {/* @ts-ignore */}
+              {related.data!.episodes.map((ep: any, idx: number) => (
+                <div key={ep.id} className="overflow-hidden rounded-xl border border-border bg-card/50">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-secondary/40 px-4 py-2.5">
+                    <Link
+                      href={`/post/${ep.id}`}
+                      className="flex min-w-0 items-center gap-2 text-sm font-semibold hover:text-primary"
+                    >
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-xs text-primary">
+                        {idx + 1}
+                      </span>
+                      <span className="truncate">{ep.title}</span>
+                    </Link>
+                    {ep.released && (
+                      <span className="shrink-0 text-xs text-muted-foreground">{ep.released}</span>
+                    )}
+                  </div>
+
+                  <div className="space-y-3 p-4">
+                    {ep.downloads.length > 0 ? (
+                      groupByQuality(ep.downloads).map((group) => (
+                        <div key={group.quality}>
+                          <div className="mb-2">
+                            <Badge variant="accent">{group.quality}</Badge>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {group.links.map((d, i) => (
+                              <Button key={i} asChild variant="outline" size="sm">
+                                <a href={d.url ?? "#"} target="_blank" rel="noopener noreferrer">
+                                  <Download className="h-4 w-4" />
+                                  {d.provider ? humanize(d.provider) : `Link ${i + 1}`}
+                                </a>
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    ) : ep.players?.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {ep.players.map((p: any, i: number) => (
+                          <Button key={i} asChild variant="secondary" size="sm">
+                            <a href={p.url ?? "#"} target="_blank" rel="noopener noreferrer">
+                              <Clapperboard className="h-4 w-4" />
+                              {p.label ? humanize(p.label) : `Stream ${i + 1}`}
+                            </a>
+                          </Button>
+                        ))}
+                      </div>
+                    ) : (
+                      <Link href={`/post/${ep.id}`} className="text-sm text-muted-foreground hover:text-primary">
+                        No direct links here — open the episode page →
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
     </div>
