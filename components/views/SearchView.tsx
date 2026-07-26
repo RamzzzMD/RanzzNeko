@@ -47,6 +47,18 @@ export function SearchView() {
     queryFn: () => api.search(urlQuery, urlPage),
     enabled: urlQuery.trim().length > 0,
     placeholderData: keepPreviousData,
+    const MAX_PAGES = 20;
+  const pageData = query.data
+    ? {
+        ...query.data,
+        pagination: {
+          currentPage: urlPage,
+          totalPages: MAX_PAGES,
+          hasNext: urlPage < MAX_PAGES && query.data.items.length > 0,
+          hasPrev: urlPage > 1,
+        },
+      }
+    : undefined;
   });
 
   const setPage = useCallback(
@@ -93,7 +105,7 @@ export function SearchView() {
             </span>
           </p>
           <ContentSection
-            data={query.data}
+            data={pageData}
             isLoading={query.isLoading}
             isError={query.isError}
             error={query.error}
