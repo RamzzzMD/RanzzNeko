@@ -168,7 +168,7 @@ export function normalizeList(payload: any, currentPage = 1): ListResponse {
       items.push(normalizePost(entry));
     }
   }
-const cleaned = items.filter((p) => p.id || (p.title && p.title !== "Untitled"));
+  const cleaned = items.filter((p) => p.id || (p.title && p.title !== "Untitled"));
   return {
     items: cleaned.length ? cleaned : items,
     pagination: normalizePagination(payload, currentPage, cleaned.length),
@@ -259,16 +259,19 @@ export function normalizeDetail(payload: any): PostDetail {
     .filter((s): s is string => Boolean(s));
 
   const players = pickArray(root, ["players", "stream", "streams", "embeds"])
-    .map((p: any) => ({
+    .map((p: any, i: number) => ({
       label:
-        typeof p === "string"
+        (typeof p === "string"
           ? null
-          : pickString(p, ["label", "name", "server", "provider"]),
-      url: typeof p === "string" ? p : pickString(p, ["url", "src", "embed"]),
+          : pickString(p, ["label", "name", "server", "provider"])) ??
+        `Stream ${i + 1}`,
+      url:
+        typeof p === "string"
+          ? p
+          : pickString(p, ["url", "src", "embed", "link", "href"]),
     }))
     .filter((p) => p.url);
 
-  // PERBAIKAN: Hapus baris 'return {' yang sebelumnya ada di sini
   const rawDesc =
     pickString(root, ["description", "synopsis", "desc", "content", "sinopsis"]) ??
     "";
@@ -276,6 +279,9 @@ export function normalizeDetail(payload: any): PostDetail {
 
   return {
     ...base,
+    streamNote: stripHtml(
+      pickString(root, ["streamnote", "stream_note", "streamNote"]) ?? ""
+    ) || null,
     description: parsed.synopsis ?? (rawDesc ? stripHtml(rawDesc) : null),
     released: pickString(root, ["released", "release", "date", "aired"]),
     duration:
