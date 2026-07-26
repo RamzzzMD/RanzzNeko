@@ -204,6 +204,64 @@ export function normalizeDetail(payload: any): PostDetail {
   };
 }
 
+function normalizeDownloads(root: AnyObj): PostDetail["downloads"] {
+  const out: PostDetail["downloads"] = [];
+  const keys = [
+    "downloads", "download", "download_links", "downloadLinks",
+    "download_url", "links", "mirror", "mirrors",
+  ];
+
+  const pushLink = (quality: string | null, provider: string | null, url: string | null) => {
+    if (url) out.push({ quality, provider, url });
+  };
+
+  const readLinkObj = (item: AnyObj, quality: string | null) => {
+    const inner = pickArray(item, ["links", "urls", "mirrors", "providers", "data"]);
+    if (inner.length) {
+      for (const li of inner) {
+        if (typeof li === "string") pushLink(quality, null, li);
+        else pushLink(quality,
+          pickString(li, ["provider", "host", "server", "name", "label"]),
+          pickString(li, ["url", "link", "href"]));
+      }
+    } else {
+      pushLink(
+        quality ?? pickString(item, ["quality", "resolution", "res", "label", "name", "size"]),
+        pickString(item, ["provider", "host", "server", "name", "label"]),
+        pickString(item, ["url", "link", "href"]));
+    }
+  };
+
+  for (const key of keys) {
+    const v = root?.[key];
+    if (!v) continue;
+    if (Array.isArray(v)) {
+      for (const item of v) {
+        if (typeof item === "string") pushLink(null, null, item);
+        else if (item && typeof item === "object")
+          readLinkObj(item, pickString(item, ["quality", "resolution", "res", "label", "name"]));
+      }
+    } else if (typeof v === "object") {
+      for (const [quality, val] of Object.entries(v)) {
+        if (typeof val === "string") pushLink(quality, null, val);
+        else if (Array.isArray(val)) {
+          for (const li of val as any[]) {
+            if (typeof li === "string") pushLink(quality, null, li);
+            else pushLink(quality,
+              pickString(li, ["provider", "host", "server", "name", "label"]),
+              pickString(li, ["url", "link", "href"]));
+          }
+        } else if (val && typeof val === "object") {
+          readLinkObj(val as AnyObj, quality);
+        }
+      }
+    } else if (typeof v === "string") {
+      pushLink(null, null, v);
+    }
+  }
+  return out;
+}
+
 export function normalizeSeries(payload: any): SeriesInfo {
   const root =
     payload?.data ?? payload?.result ?? payload?.series ?? payload ?? {};
