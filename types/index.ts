@@ -25,6 +25,11 @@ export interface PostDetailDownload {
   url: string | null;
 }
 
+export interface DownloadEpisode {
+  title: string | null;
+  downloads: PostDetailDownload[];
+}
+
 export interface PostDetail extends Post {
   description: string | null;
   released: string | null;
