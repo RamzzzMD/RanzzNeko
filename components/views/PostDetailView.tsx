@@ -195,8 +195,7 @@ export function PostDetailView({ id }: { id: string }) {
         </section>
       )}
 
-      {/* Streaming embeds (catalog-only: we surface preview players if present,
-          never direct download links). */}
+      {/* Streaming embeds */}
       {post.players.length > 0 && (
         <section className="mt-10">
           <h2 className="mb-4 text-lg font-semibold">Watch</h2>
@@ -212,12 +211,9 @@ export function PostDetailView({ id }: { id: string }) {
           </div>
         </section>
       )}
-    </div>
-  );
-}
 
-{/* Download links (grouped by quality when available). */}
-      {post.downloads.length > 0 && (
+      {/* Download links */}
+      {post.downloads && post.downloads.length > 0 && (
         <section className="mt-10">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
             <Download className="h-5 w-5 text-primary" />
@@ -256,6 +252,7 @@ export function PostDetailView({ id }: { id: string }) {
 function groupByQuality(
   downloads: PostDetail["downloads"]
 ): { quality: string; links: PostDetail["downloads"] }[] {
+  if (!downloads) return [];
   const map = new Map<string, PostDetail["downloads"]>();
   for (const d of downloads) {
     const q = d.quality?.trim() || "Download";
@@ -264,7 +261,6 @@ function groupByQuality(
   }
   return Array.from(map.entries()).map(([quality, links]) => ({ quality, links }));
 }
-      
 
 function MetaItem({
   icon: Icon,
