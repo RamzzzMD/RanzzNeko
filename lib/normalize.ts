@@ -13,6 +13,11 @@ import { BLOCKED_GENRES } from "@/lib/nekopoi";
  * endpoints, so these helpers defensively pull values from a range of likely
  * field names and produce the normalized shapes our client consumes.
  */
+const EPISODE_KEYS = [
+  "episodes", "episode", "eps", "episode_list", "episodeList",
+  "chapters", "parts", "list",
+];
+
 const NESTED_LIST_KEYS = [
   "data", "result", "results", "posts", "items",
   "list", "content", "videos", "recent", "children",
@@ -200,7 +205,8 @@ export function normalizeDetail(payload: any): PostDetail {
     seriesId: pickString(root, ["series_id", "seriesId", "series"]),
     screenshots,
     players,
-    downloads: normalizeDownloads(root),   // ⬅️ tambahkan baris ini
+    downloads: normalizeDownloads(root),
+    episodes: normalizeEpisodes(root),// ⬅️ tambahkan baris ini
   };
 }
 
@@ -259,6 +265,36 @@ function normalizeDownloads(root: AnyObj): PostDetail["downloads"] {
       pushLink(null, null, v);
     }
   }
+  return out;
+}
+
+function normalizeEpisodes(root: AnyObj): PostDetail["episodes"] {
+  const out: PostDetail["episodes"] = [];
+
+  let arr: any[] = [];
+  for (const k of EPISODE_KEYS) {
+    if (Array.isArray(root?.[k]) && root[k].length) { arr = root[k]; break; }
+  }
+
+  if (arr.length) {
+    arr.forEach((ep, i) => {
+      const isObj = ep && typeof ep === "object";
+      const downloads = normalizeDownloads(isObj ? ep : {});
+      if (!downloads.length) return;
+      const title =
+        (isObj
+          ? pickString(ep, ["title", "name", "episode", "eps", "label", "judul"])
+          : null) ?? `Episode ${i + 1}`;
+      out.push({ title, downloads });
+    });
+  }
+
+  // Fallback: single-episode content with links directly on the root.
+  if (!out.length) {
+    const rootDownloads = normalizeDownloads(root);
+    if (rootDownloads.length) out.push({ title: null, downloads: rootDownloads });
+  }
+
   return out;
 }
 
