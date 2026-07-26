@@ -42,12 +42,16 @@ export function SearchView() {
     router.replace(qs.toString() ? `/search?${qs}` : "/search");
   }, [debouncedTerm, urlQuery, router]);
 
+  // PERBAIKAN: Tutup useQuery dengan benar di sini
   const query = useQuery({
     queryKey: queryKeys.search(urlQuery, urlPage),
     queryFn: () => api.search(urlQuery, urlPage),
     enabled: urlQuery.trim().length > 0,
     placeholderData: keepPreviousData,
-    const MAX_PAGES = 20;
+  });
+
+  // Deklarasi variabel diletakkan di luar objek useQuery
+  const MAX_PAGES = 20;
   const pageData = query.data
     ? {
         ...query.data,
@@ -59,7 +63,6 @@ export function SearchView() {
         },
       }
     : undefined;
-  });
 
   const setPage = useCallback(
     (page: number) => {
