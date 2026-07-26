@@ -6,11 +6,13 @@ import { handleRoute } from "@/lib/apiHandler";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const raw = req.nextUrl.searchParams.get("raw");
   return handleRoute(async () => {
-    const raw = await neko.detail(params.id);
-    return normalizeDetail(raw);
+    const payload = await neko.detail(params.id);
+    if (raw) return payload;
+    return normalizeDetail(payload);
   });
 }
