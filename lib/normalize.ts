@@ -200,6 +200,7 @@ export function normalizeDetail(payload: any): PostDetail {
     seriesId: pickString(root, ["series_id", "seriesId", "series"]),
     screenshots,
     players,
+    downloads: normalizeDownloads(root),   // ⬅️ tambahkan baris ini
   };
 }
 
