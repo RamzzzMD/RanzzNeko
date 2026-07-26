@@ -4,14 +4,18 @@ import { NekoError } from "@/lib/nekopoi";
 
 /** Wrap an async route handler with consistent error → JSON conversion. */
 export async function handleRoute<T>(
-  fn: () => Promise<T>
+  fn: () => Promise<T>,
+  options?: { cacheControl?: string }
 ): Promise<NextResponse> {
   try {
     const data = await fn();
     return NextResponse.json(data, {
       headers: {
-        // Cache at the edge for a short window to reduce upstream calls.
+        // Default: cache at the edge for a short window to reduce upstream
+        // calls. Routes that must always be fresh (e.g. /latest) pass
+        // "no-store" so new content shows up immediately.
         "Cache-Control":
+          options?.cacheControl ??
           "public, s-maxage=120, stale-while-revalidate=600",
       },
     });
