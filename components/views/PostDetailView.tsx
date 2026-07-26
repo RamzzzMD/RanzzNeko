@@ -248,6 +248,64 @@ export function PostDetailView({ id }: { id: string }) {
   );
 }
 
+{/* Download — one block per episode, each grouped by quality. */}
+      {post.episodes.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+            <Download className="h-5 w-5 text-primary" />
+            Download
+            <span className="text-sm font-normal text-muted-foreground">
+              ({post.episodes.length}{" "}
+              {post.episodes.length === 1 ? "episode" : "episodes"})
+            </span>
+          </h2>
+
+          <div className="space-y-3">
+            {post.episodes.map((ep, idx) => (
+              <div
+                key={idx}
+                className="overflow-hidden rounded-xl border border-border bg-card/50"
+              >
+                <div className="flex items-center justify-between gap-2 border-b border-border/60 bg-secondary/40 px-4 py-2.5">
+                  <h3 className="flex items-center gap-2 text-sm font-semibold">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary/15 text-xs text-primary">
+                      {idx + 1}
+                    </span>
+                    {ep.title ?? `Episode ${idx + 1}`}
+                  </h3>
+                  {post.type && (
+                    <Badge variant="secondary">{humanize(post.type)}</Badge>
+                  )}
+                </div>
+
+                <div className="space-y-3 p-4">
+                  {groupByQuality(ep.downloads).map((group) => (
+                    <div key={group.quality}>
+                      <div className="mb-2">
+                        <Badge variant="accent">{group.quality}</Badge>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {group.links.map((d, i) => (
+                          <Button key={i} asChild variant="outline" size="sm">
+                            <a href={d.url ?? "#"} target="_blank" rel="noopener noreferrer">
+                              <Download className="h-4 w-4" />
+                              {d.provider ? humanize(d.provider) : `Link ${i + 1}`}
+                            </a>
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+      
 /** Group download links by their quality label for a tidy layout. */
 function groupByQuality(
   downloads: PostDetail["downloads"]
