@@ -175,6 +175,77 @@ const cleaned = items.filter((p) => p.id || (p.title && p.title !== "Untitled"))
   };
 }
 
+function stripHtml(input: string): string {
+  if (!input) return "";
+  let s = input;
+  s = s.replace(/<\s*(br|\/p|\/h[1-6]|\/div|\/li|\/tr)\s*\/?>/gi, "\n");
+  s = s.replace(/<[^>]+>/g, "");
+  s = s
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#0?39;|&apos;|&rsquo;|&lsquo;/gi, "'")
+    .replace(/&ldquo;|&rdquo;/gi, '"')
+    .replace(/&hellip;/gi, "…");
+  return s
+    .split("\n")
+    .map((l) => l.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
+const SYNOPSIS_LABEL_RE =
+  /^(genres?|producers?|studio|duration|durasi|size|ukuran|catatan|notes?|status|type|tipe|released?|rilis|quality|kualitas)\s*[:\-]/i;
+
+function parseSynopsis(rawHtml: string): {
+  synopsis: string | null;
+  duration: string | null;
+  producer: string | null;
+  genres: string[];
+} {
+  const text = stripHtml(rawHtml);
+  if (!text) return { synopsis: null, duration: null, producer: null, genres: [] };
+
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const synopsisLines: string[] = [];
+  let duration: string | null = null;
+  let producer: string | null = null;
+  let genres: string[] = [];
+  let hitLabel = false;
+
+  for (const line of lines) {
+    if (/^(sinopsis|synopsis)\s*:?\s*$/i.test(line)) continue;
+
+    const m = line.match(SYNOPSIS_LABEL_RE);
+    if (m) {
+      hitLabel = true;
+      const label = m[1].toLowerCase();
+      const value = line.slice(m[0].length).trim();
+      if (label.startsWith("durat") || label === "durasi") duration ||= value || null;
+      else if (label.startsWith("produc") || label === "studio")
+        producer ||= value || null;
+      else if (label.startsWith("genre"))
+        genres = value
+          .split(/[,|]/)
+          .map((g) => g.trim().toLowerCase().replace(/\s+/g, "_"))
+          .filter(Boolean);
+      continue;
+    }
+
+    if (!hitLabel) synopsisLines.push(line);
+  }
+
+  return {
+    synopsis: synopsisLines.join("\n").trim() || null,
+    duration,
+    producer,
+    genres: stripBlockedGenres(genres),
+  };
+}
+
 export function normalizeDetail(payload: any): PostDetail {
   // The detail payload may nest the post under data/result/post.
   const root =
@@ -198,15 +269,26 @@ export function normalizeDetail(payload: any): PostDetail {
     .filter((p) => p.url);
 
   return {
+    const rawDesc =
+    pickString(root, ["description", "synopsis", "desc", "content", "sinopsis"]) ??
+    "";
+  const parsed = parseSynopsis(rawDesc);
+
+  return {
     ...base,
-    description: pickString(root, ["description", "synopsis", "desc", "content"]),
+    description: parsed.synopsis ?? (rawDesc ? stripHtml(rawDesc) : null),
     released: pickString(root, ["released", "release", "date", "aired"]),
-    duration: pickString(root, ["duration", "length", "runtime"]),
+    duration:
+      pickString(root, ["duration", "length", "runtime"]) ?? parsed.duration,
+    producer:
+      pickString(root, ["producer", "producers", "studio", "maker", "brand"]) ??
+      parsed.producer,
     seriesId: pickString(root, ["series_id", "seriesId", "series"]),
     screenshots,
     players,
     downloads: normalizeDownloads(root),
-    episodes: normalizeEpisodes(root),// ⬅️ tambahkan baris ini
+    episodes: normalizeEpisodes(root),
+    genres: base.genres.length ? base.genres : parsed.genres,
   };
 }
 
