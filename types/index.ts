@@ -51,6 +51,8 @@ export interface PostDetail extends Post {
   seriesId: string | null;
   screenshots: string[];
   players: { label: string | null; url: string | null }[];
+  /** Upstream note about which stream server serves which resolution. */
+  streamNote: string | null;
   downloads: PostDetailDownload[];
   /** Per-episode downloads (multi-episode content), arranged in order. */
   episodes: DownloadEpisode[];
