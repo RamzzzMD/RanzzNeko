@@ -29,12 +29,11 @@ export interface PostDetail extends Post {
   description: string | null;
   released: string | null;
   duration: string | null;
-  /** Related series id if this post belongs to a series. */
   seriesId: string | null;
-  /** Screenshots / preview images. */
   screenshots: string[];
-  /** Streaming/preview embeds if any (we do NOT surface direct downloads). */
   players: { label: string | null; url: string | null }[];
+  /** Download links grouped by quality/provider (from upstream). */
+  downloads: PostDetailDownload[];
 }
 
 export interface SeriesInfo {
