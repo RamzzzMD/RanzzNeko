@@ -1,3 +1,4 @@
+import { type NextRequest } from "next/server";
 import { neko } from "@/lib/nekopoi";
 import { normalizeList } from "@/lib/normalize";
 import { handleRoute } from "@/lib/apiHandler";
@@ -7,13 +8,17 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Debug: /api/latest?raw=1 returns the untouched upstream JSON so you can
+  // inspect the exact field names. Remove or protect this before production.
+  const raw = req.nextUrl.searchParams.get("raw");
+
   return handleRoute(
     async () => {
-      const raw = await neko.latest();
-      return normalizeList(raw, 1);
+      const payload = await neko.latest();
+      if (raw) return payload;
+      return normalizeList(payload, 1);
     },
-    // No edge/browser caching so newly added content appears right away.
     { cacheControl: "no-store, max-age=0, must-revalidate" }
   );
 }
