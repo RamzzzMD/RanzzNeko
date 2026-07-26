@@ -22,7 +22,7 @@ export default function GenrePage({ params }: Params) {
   // Enforce the legal block + valid-genre check at the route boundary too.
   if (
     BLOCKED_GENRES.includes(genre as (typeof BLOCKED_GENRES)[number]) ||
-    !GENRES.includes(genre)
+    !GENRES.includes(genre as (typeof GENRES)[number])
   ) {
     notFound();
   }
