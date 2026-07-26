@@ -268,8 +268,8 @@ export function normalizeDetail(payload: any): PostDetail {
     }))
     .filter((p) => p.url);
 
-  return {
-    const rawDesc =
+  // PERBAIKAN: Hapus baris 'return {' yang sebelumnya ada di sini
+  const rawDesc =
     pickString(root, ["description", "synopsis", "desc", "content", "sinopsis"]) ??
     "";
   const parsed = parseSynopsis(rawDesc);
