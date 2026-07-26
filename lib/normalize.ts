@@ -13,6 +13,10 @@ import { BLOCKED_GENRES } from "@/lib/nekopoi";
  * endpoints, so these helpers defensively pull values from a range of likely
  * field names and produce the normalized shapes our client consumes.
  */
+const NESTED_LIST_KEYS = [
+  "data", "result", "results", "posts", "items",
+  "list", "content", "videos", "recent", "children",
+];
 
 type AnyObj = Record<string, any>;
 
@@ -34,33 +38,12 @@ function pickArray(obj: AnyObj, keys: string[]): any[] {
 }
 
 /** Find the most likely "list of items" array inside an arbitrary payload. */
-function findItemsArray(payload: any): any[] {
-  if (Array.isArray(payload)) return payload;
-  if (!payload || typeof payload !== "object") return [];
-  const candidateKeys = [
-    "data",
-    "result",
-    "results",
-    "results_data",
-    "posts",
-    "items",
-    "list",
-    "content",
-    "recent",
-    "videos",
-  ];
-  for (const k of candidateKeys) {
-    if (Array.isArray(payload[k])) return payload[k];
-    if (payload[k] && typeof payload[k] === "object") {
-      const nested = findItemsArray(payload[k]);
-      if (nested.length) return nested;
-    }
+function nestedPostArray(entry: any): any[] | null {
+  if (!entry || typeof entry !== "object") return null;
+  for (const k of NESTED_LIST_KEYS) {
+    if (Array.isArray(entry[k]) && entry[k].length) return entry[k];
   }
-  // Fallback: first array-valued property.
-  for (const key of Object.keys(payload)) {
-    if (Array.isArray(payload[key])) return payload[key];
-  }
-  return [];
+  return null;
 }
 
 function stripBlockedGenres(genres: string[]): string[] {
@@ -149,15 +132,32 @@ export function normalizePagination(
   };
 }
 
-export function normalizeList(
-  payload: any,
-  currentPage = 1
-): ListResponse {
+export function normalizeList(payload: any, currentPage = 1): ListResponse {
   const arr = findItemsArray(payload);
-  const items = arr.map(normalizePost).filter((p) => p.id || p.title);
+
+  // /recent groups posts by type: top-level is a list of sections like
+  // { type: "hentai", data: [...posts] }. Flatten them, carrying the
+  // section type down onto each post. Flat posts are handled directly.
+  const items: Post[] = [];
+  for (const entry of arr) {
+    const nested = nestedPostArray(entry);
+    if (nested) {
+      const sectionType = pickString(entry, [
+        "type", "category", "content_type", "tipe", "slug", "title", "name",
+      ]);
+      for (const raw of nested) {
+        const post = normalizePost(raw);
+        if (!post.type && sectionType) post.type = sectionType;
+        items.push(post);
+      }
+    } else {
+      items.push(normalizePost(entry));
+    }
+  }
+const cleaned = items.filter((p) => p.id || (p.title && p.title !== "Untitled"));
   return {
-    items,
-    pagination: normalizePagination(payload, currentPage, items.length),
+    items: cleaned.length ? cleaned : items,
+    pagination: normalizePagination(payload, currentPage, cleaned.length),
   };
 }
 
