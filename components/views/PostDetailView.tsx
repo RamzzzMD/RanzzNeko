@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { cn, humanize, orDash, shimmer } from "@/lib/utils";
 import type { PostDetail } from "@/types";
+import { StreamPlayer } from "@/components/shared/StreamPlayer";
 
 export function PostDetailView({ id }: { id: string }) {
   const query = useQuery({
@@ -33,7 +34,9 @@ export function PostDetailView({ id }: { id: string }) {
 
   const post = query.data;
 
-  // PERBAIKAN: useQuery tidak boleh ada di dalam useEffect. Harus di level komponen.
+  // PERBAIKAN: State untuk menampung ID episode yang sedang ditonton
+  const [watchingId, setWatchingId] = useState<string | null>(null);
+
   const related = useQuery({
     // @ts-ignore
     queryKey: queryKeys.related ? queryKeys.related(post?.title ?? "", id) : ["related", id],
@@ -212,20 +215,14 @@ export function PostDetailView({ id }: { id: string }) {
         </section>
       )}
 
-      {/* Streaming embeds */}
+      {/* Watch in-page — embedded stream player with server switcher. */}
       {post.players.length > 0 && (
         <section className="mt-10">
-          <h2 className="mb-4 text-lg font-semibold">Watch</h2>
-          <div className="flex flex-wrap gap-2">
-            {post.players.map((p, i) => (
-              <Button key={i} asChild variant="secondary" size="sm">
-                <a href={p.url ?? "#"} target="_blank" rel="noopener noreferrer">
-                  <Clapperboard className="h-4 w-4" />
-                  {p.label ? humanize(p.label) : `Player ${i + 1}`}
-                </a>
-              </Button>
-            ))}
-          </div>
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+            <Clapperboard className="h-5 w-5 text-primary" />
+            Watch
+          </h2>
+          <StreamPlayer players={post.players} />
         </section>
       )}
 
@@ -321,7 +318,7 @@ export function PostDetailView({ id }: { id: string }) {
         </section>
       )}
 
-      {/* Episode list matched by title — each with its own download links. */}
+      {/* Episode list matched by title — each with its own download links & inline player. */}
       {/* @ts-ignore */}
       {(related.isLoading || (related.data?.episodes?.length ?? 0) > 0) && (
         <section className="mt-10">
@@ -359,13 +356,36 @@ export function PostDetailView({ id }: { id: string }) {
                       </span>
                       <span className="truncate">{ep.title}</span>
                     </Link>
-                    {ep.released && (
-                      <span className="shrink-0 text-xs text-muted-foreground">{ep.released}</span>
-                    )}
+                    
+                    {/* PERBAIKAN: Header kanan sekarang memuat Info Tanggal rilis & Tombol Switcher Player */}
+                    <div className="flex shrink-0 items-center gap-2">
+                      {ep.released && (
+                        <span className="text-xs text-muted-foreground">{ep.released}</span>
+                      )}
+                      {ep.players?.length > 0 && (
+                        <Button
+                          variant={watchingId === ep.id ? "default" : "secondary"}
+                          size="sm"
+                          onClick={() =>
+                            setWatchingId(watchingId === ep.id ? null : ep.id)
+                          }
+                        >
+                          <Clapperboard className="h-4 w-4" />
+                          {watchingId === ep.id ? "Close" : "Watch"}
+                        </Button>
+                      )}
+                    </div>
                   </div>
 
+                  {/* Inline player for this episode. */}
+                  {watchingId === ep.id && ep.players?.length > 0 && (
+                    <div className="p-4 pb-0">
+                      <StreamPlayer players={ep.players} />
+                    </div>
+                  )}
+
                   <div className="space-y-3 p-4">
-                    {ep.downloads.length > 0 ? (
+                    {ep.downloads?.length > 0 ? (
                       groupByQuality(ep.downloads).map((group) => (
                         <div key={group.quality}>
                           <div className="mb-2">
@@ -384,16 +404,12 @@ export function PostDetailView({ id }: { id: string }) {
                         </div>
                       ))
                     ) : ep.players?.length > 0 ? (
-                      <div className="flex flex-wrap gap-2">
-                        {ep.players.map((p: any, i: number) => (
-                          <Button key={i} asChild variant="secondary" size="sm">
-                            <a href={p.url ?? "#"} target="_blank" rel="noopener noreferrer">
-                              <Clapperboard className="h-4 w-4" />
-                              {p.label ? humanize(p.label) : `Stream ${i + 1}`}
-                            </a>
-                          </Button>
-                        ))}
-                      </div>
+                      // PERBAIKAN: Jika ada player tapi tidak ada download, tampilkan hint ini
+                      <p className="text-sm text-muted-foreground">
+                        No downloads — use the{" "}
+                        <span className="font-medium text-primary">Watch</span>{" "}
+                        button to stream this episode.
+                      </p>
                     ) : (
                       <Link href={`/post/${ep.id}`} className="text-sm text-muted-foreground hover:text-primary">
                         No direct links here — open the episode page →
