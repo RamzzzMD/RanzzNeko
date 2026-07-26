@@ -34,6 +34,7 @@ export interface PostDetail extends Post {
   description: string | null;
   released: string | null;
   duration: string | null;
+  producer: string | null;
   seriesId: string | null;
   screenshots: string[];
   players: { label: string | null; url: string | null }[];
