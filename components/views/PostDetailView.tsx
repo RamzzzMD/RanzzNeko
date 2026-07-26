@@ -33,8 +33,6 @@ export function PostDetailView({ id }: { id: string }) {
   });
 
   const post = query.data;
-
-  // PERBAIKAN: State untuk menampung ID episode yang sedang ditonton
   const [watchingId, setWatchingId] = useState<string | null>(null);
 
   const related = useQuery({
@@ -223,6 +221,13 @@ export function PostDetailView({ id }: { id: string }) {
             Watch
           </h2>
           <StreamPlayer players={post.players} />
+          {/* @ts-ignore */}
+          {post.streamNote && (
+            <p className="mt-3 rounded-lg border border-border/60 bg-card/50 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
+              {/* @ts-ignore */}
+              {post.streamNote}
+            </p>
+          )}
         </section>
       )}
 
@@ -356,8 +361,6 @@ export function PostDetailView({ id }: { id: string }) {
                       </span>
                       <span className="truncate">{ep.title}</span>
                     </Link>
-                    
-                    {/* PERBAIKAN: Header kanan sekarang memuat Info Tanggal rilis & Tombol Switcher Player */}
                     <div className="flex shrink-0 items-center gap-2">
                       {ep.released && (
                         <span className="text-xs text-muted-foreground">{ep.released}</span>
@@ -404,7 +407,6 @@ export function PostDetailView({ id }: { id: string }) {
                         </div>
                       ))
                     ) : ep.players?.length > 0 ? (
-                      // PERBAIKAN: Jika ada player tapi tidak ada download, tampilkan hint ini
                       <p className="text-sm text-muted-foreground">
                         No downloads — use the{" "}
                         <span className="font-medium text-primary">Watch</span>{" "}
