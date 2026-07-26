@@ -1,4 +1,4 @@
-import type { ListResponse, PostDetail, SeriesInfo } from "@/types";
+import type { ListResponse, PostDetail, RelatedResponse, SeriesInfo } from "@/types";
 
 /**
  * Client-side fetch helpers. These only ever hit our own /api/* routes — the
@@ -41,6 +41,11 @@ export const api = {
   detail: (id: string) => getJSON<PostDetail>(`/api/post/${encodeURIComponent(id)}`),
 
   series: (id: string) => getJSON<SeriesInfo>(`/api/series/${encodeURIComponent(id)}`),
+
+  related: (title: string, exclude: string) =>
+    getJSON<RelatedResponse>(
+      `/api/related?title=${encodeURIComponent(title)}&exclude=${encodeURIComponent(exclude)}`
+    ),
 };
 
 /** Query keys for React Query. */
@@ -52,4 +57,5 @@ export const queryKeys = {
   genre: (g: string) => ["genre", g] as const,
   detail: (id: string) => ["detail", id] as const,
   series: (id: string) => ["series", id] as const,
+  related: (title: string, exclude: string) => ["related", title, exclude] as const,
 };
