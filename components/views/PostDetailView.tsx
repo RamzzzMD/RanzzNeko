@@ -10,6 +10,7 @@ import {
   Calendar,
   Clapperboard,
   Clock,
+  Download,
   Heart,
   Layers,
   Tag,
@@ -21,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorMessage } from "@/components/shared/ErrorMessage";
 import { cn, humanize, orDash, shimmer } from "@/lib/utils";
+import type { PostDetail } from "@/types";
 
 export function PostDetailView({ id }: { id: string }) {
   const query = useQuery({
@@ -213,6 +215,56 @@ export function PostDetailView({ id }: { id: string }) {
     </div>
   );
 }
+
+{/* Download links (grouped by quality when available). */}
+      {post.downloads.length > 0 && (
+        <section className="mt-10">
+          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold">
+            <Download className="h-5 w-5 text-primary" />
+            Download
+          </h2>
+          <div className="space-y-4">
+            {groupByQuality(post.downloads).map((group) => (
+              <div key={group.quality} className="rounded-xl border border-border bg-card/50 p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <Badge variant="accent">{group.quality}</Badge>
+                  {post.type && <Badge variant="secondary">{humanize(post.type)}</Badge>}
+                  {post.duration && (
+                    <span className="text-xs text-muted-foreground">{post.duration}</span>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {group.links.map((d, i) => (
+                    <Button key={i} asChild variant="outline" size="sm">
+                      <a href={d.url ?? "#"} target="_blank" rel="noopener noreferrer">
+                        <Download className="h-4 w-4" />
+                        {d.provider ? humanize(d.provider) : `Link ${i + 1}`}
+                      </a>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  );
+}
+
+/** Group download links by their quality label for a tidy layout. */
+function groupByQuality(
+  downloads: PostDetail["downloads"]
+): { quality: string; links: PostDetail["downloads"] }[] {
+  const map = new Map<string, PostDetail["downloads"]>();
+  for (const d of downloads) {
+    const q = d.quality?.trim() || "Download";
+    if (!map.has(q)) map.set(q, []);
+    map.get(q)!.push(d);
+  }
+  return Array.from(map.entries()).map(([quality, links]) => ({ quality, links }));
+}
+      
 
 function MetaItem({
   icon: Icon,
