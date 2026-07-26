@@ -1,16 +1,23 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { Sparkles } from "lucide-react";
+import { RefreshCw, Sparkles } from "lucide-react";
 import { api, queryKeys } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { ContentSection } from "@/components/shared/ContentSection";
 import { RecentlyViewed } from "@/components/shared/RecentlyViewed";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 export function HomeView() {
   const query = useQuery({
     queryKey: queryKeys.latest,
     queryFn: api.latest,
+    // Always treat "latest" as stale so revisiting the page refetches the
+    // newest releases instead of showing a cached list.
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
   });
 
   return (
@@ -32,7 +39,20 @@ export function HomeView() {
         title="Latest releases"
         subtitle="Freshly added to the catalog"
         icon={<Sparkles className="h-6 w-6 text-primary" />}
-      />
+      >
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => query.refetch()}
+          disabled={query.isFetching}
+          aria-label="Refresh latest"
+        >
+          <RefreshCw
+            className={cn("h-4 w-4", query.isFetching && "animate-spin")}
+          />
+          {query.isFetching ? "Refreshing…" : "Refresh"}
+        </Button>
+      </PageHeader>
 
       <ContentSection
         data={query.data}
